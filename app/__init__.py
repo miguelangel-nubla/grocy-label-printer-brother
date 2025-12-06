@@ -150,7 +150,8 @@ def get_params():
     label_fields = {
         'best_before_date': '' if exclude_amount_and_dates else (str(stock_entry.get('best_before_date', '')) if stock_entry.get('best_before_date') else ''),
         'purchased_date': '' if exclude_amount_and_dates else (str(stock_entry.get('purchased_date', '')) if stock_entry.get('purchased_date') else ''),
-        'amount': '' if exclude_amount_and_dates else (str(stock_entry.get('amount', '')) if stock_entry.get('amount') else '')
+        'amount': '' if exclude_amount_and_dates else (str(stock_entry.get('amount', '')) if stock_entry.get('amount') else ''),
+        'note': str(stock_entry.get('note', ''))
     }
     
     # Extract unit info
@@ -162,7 +163,7 @@ def get_params():
     unit_name = _get_unit_name(quantity_unit_stock, label_fields['amount'])
     
     logging.debug(f"Extracted - name: '{name}', barcode: '{barcode}', label_fields: {label_fields}, unit: '{unit_name}'")
-    return (name, barcode, label_fields['best_before_date'], label_fields['purchased_date'], label_fields['amount'], unit_name)
+    return (name, barcode, label_fields['best_before_date'], label_fields['purchased_date'], label_fields['amount'], unit_name, label_fields['note'])
 
 def _get_unit_name(quantity_unit_stock, amount):
     """Get appropriate unit name (singular/plural)."""
@@ -187,7 +188,7 @@ def print_route():
     logging.debug("Label sent to printer successfully")
     return Response("OK", 200)
 
-@app.route("/image")
+@app.route("/image", methods=["GET", "POST"])
 def image_route():
     """Generate and return label image."""
     logging.debug(f"Image endpoint: {request.method} {request.url}")
@@ -201,13 +202,13 @@ def image_route():
     logging.debug("Label image generated successfully")
     return Response(buf, 200, mimetype="image/png")
 
-def _create_label(name, barcode_text, best_before_date, purchased_date, amount, unit_name):
+def _create_label(name, barcode_text, best_before_date, purchased_date, amount, unit_name, note):
     """Create label image with given parameters."""
     _, label_spec = _get_current_label_size_and_spec()
     barcode = create_barcode(barcode_text, Config.BARCODE_FORMAT)
     return create_label_image(
         label_spec.dots_total, name, nameFont, Config.NAME_MAX_LINES,
-        barcode, best_before_date, purchased_date, amount, unit_name, ddFont
+        barcode, best_before_date, purchased_date, amount, unit_name, note, ddFont
     )
 
 def sendToPrinter(image):

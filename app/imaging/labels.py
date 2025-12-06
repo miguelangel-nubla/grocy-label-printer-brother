@@ -16,6 +16,7 @@ class LabelConfig(NamedTuple):
     purchased_date: str = ""
     amount: str = ""
     unit_name: str = ""
+    note: str = ""
     due_date_font: ImageFont.FreeTypeFont = None
 
 
@@ -183,10 +184,20 @@ class LabelLayout:
         """Create formatted date display string."""
         purchased = self.config.purchased_date
         best_before = self.config.best_before_date
+        note = self.config.note
         
-        if purchased and best_before:
-            return f"{purchased} - {best_before}"
-        return best_before or purchased or ""
+        parts = []
+        if note:
+            parts.append(note)
+            parts.append("|")
+        if purchased:
+            parts.append(purchased)
+        if best_before:
+            if purchased:
+                parts.append("-")
+            parts.append(best_before)
+            
+        return " ".join(parts)
     
     def _create_amount_display(self) -> str:
         """Create formatted amount display string."""
@@ -202,7 +213,7 @@ def create_label_image(label_size: Tuple[int, int], text: str,
                       text_font: ImageFont.FreeTypeFont, text_max_lines: int,
                       barcode: Image.Image, best_before_date: str = "",
                       purchased_date: str = "", amount: str = "",
-                      unit_name: str = "", due_date_font: ImageFont.FreeTypeFont = None) -> Image.Image:
+                      unit_name: str = "", note: str = "", due_date_font: ImageFont.FreeTypeFont = None) -> Image.Image:
     """Create a label image with barcode, text, and optional date/amount info."""
     config = LabelConfig(
         label_size=label_size,
@@ -214,6 +225,7 @@ def create_label_image(label_size: Tuple[int, int], text: str,
         purchased_date=purchased_date,
         amount=amount,
         unit_name=unit_name,
+        note=note,
         due_date_font=due_date_font
     )
     
