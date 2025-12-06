@@ -1,109 +1,131 @@
-# Brother QL Grocy Label Printer Service
+# Grocy Label Printer Brother
 
-<img src="example.png" alt="Example Label" width="348" height="135">
+A Flask server that receives Grocy label requests and prints them to Brother QL thermal printers.
 
-This project is intended to be a webhook target for [Grocy](https://github.com/grocy/grocy) to print labels to a brother QL label printer. 
+## Features
 
-Datamatrix or QR codes can be used with Datamatrix being the default. Datamatrix will fit better in smaller labels but I've found aren't as easily read by the Grocy 
-barcode reader or by the [Android App](https://github.com/patzly/grocy-android).
+- **Grocy Integration**: Compatible with Grocy's label printing system via webhooks.
+- **Brother QL Support**: Works with Brother QL series printers (USB and Network/WiFi).
+- **Auto-Detection**: Automatically detects label size for PT series printers connected via network.
+- **Smart Layout**:
+  - **Endless Labels**: Barcode on the left, text on the right.
+  - **Die-Cut Labels**: Optimized layout for fixed sizes.
+- **Configurable Fonts**: Customizable fonts and sizes for product names and dates.
+- **Container Support**: Docker-ready for easy deployment.
 
-Only die-cut labels are supported as I don't have any endless rolls to test with.
+## Quick Start
 
-## Connecting Grocy
+### Docker (Recommended)
 
-Once you have this running somewhere update your config at `app/data/config.php` to match the following. Presuming that you have this running on localhost at port 8000.
-
-```
-    // Label printer settings
-    Setting('LABEL_PRINTER_WEBHOOK', 'http://127.0.0.1:8000/print');
-    Setting('LABEL_PRINTER_RUN_SERVER', true);
-    Setting('LABEL_PRINTER_PARAMS', []);
-    Setting('LABEL_PRINTER_HOOK_JSON', false);
-
-    Setting('FEATURE_FLAG_LABEL_PRINTER', true);
-```
-
-## Environment Variables
-
-The label size and printer are configured via environmental variables. You can also create a `.env` file instead.
-
-| Variable           | Default               | Description                                                                                   |
-| ------------------ | --------------------- | --------------------------------------------------------------------------------------------- |
-| LABEL_SIZE         | 62x29                 | See the [brother_ql](https://github.com/pklaus/brother_ql) readme for the names of the labels |
-| PRINTER_MODEL      | QL-500                | The printer model. One of the values accepted by brother_ql                                   |
-| PRINTER_PATH       | file:///dev/usb/lp1   | Where the printer is found on the system. For network printers use `tcp://printer.address`    |
-| BARCODE_FORMAT     | Datamatrix            | `Datamatrix` or `QRCode`                                                                      |
-| NAME_FONT          | NotoSerif-Regular.ttf | The file name of the font in the fonts directory                                              |
-| NAME_FONT_SIZE     | 48                    | The size of that font                                                                         |
-| NAME_MAX_LINES     | 4                     | The maximum number of lines to use for the name                                               |
-| DUE_DATE_FONT      | NotoSerif-Regular.ttf | The file name of the font in the fonts directory                                              |
-| DUE_DATE_FONT_SIZE | 30                    | The size of that font                                                                         |
-| ENDLESS_MARGIN     | 10                    | The top & bottom margin to add when using endless labels                                      |
-
-Included fonts are `NotoSans-Regular.ttf` and `NotoSerif-Regular.ttf`
-
-## Endless Labels
-
-These are supported, for example the `62` label size. The length of the label will be big enough to accommodate the max number of lines including a margin.
-You may want to experiment with font sizes and line count to get the most out of it.
-
-## Endpoints
-
-Two endpoints are available `/print` and `/image` both accept the same parameters. `/image` will return the rendered image as a PNG instead of sending to the printer.
-
-### Parameters
-
-POST or GET accepted.
-
-| Name      | Use                                 |
-| --------- | ------------------------------------|
-| product   | name                                |
-| battery   | name                                |
-| chore     | name                                |
-| recipe    | name                                |
-| grocycode | the barcode                         |
-| due_date  | the text at the bottom of the label |
-
-The name will use whichever parameter is given.
-
-## Running
-
-**Note:** Theres no security on this web service, so don't make it publicly available.
-
-This has been tested with python 3.10, newer may work fine.
-
-You will need to install the `libdmtx` library for the barcodes to generate, see [pylibdmtx](https://pypi.org/project/pylibdmtx/) documentation on pypi.
-
-Its advisable to run and install in a [venv](https://docs.python.org/3/library/venv.html). For example:
-
-```
-    # Create and enter the venv
-    python -m venv .venv
-    source ./.venv/bin/activate
-    # Install packages
-    python -m pip install -U -r requirements.txt
-
-    # exit with ./.venv/bin/deactivate
+```bash
+docker run -d \
+  --name grocy-label-printer \
+  -p 5000:80 \
+  -e PRINTER_PATH="tcp://192.168.1.100" \
+  -e PRINTER_MODEL="PT-P750W" \
+  ghcr.io/miguelangel-nubla/grocy-label-printer-brother:latest
 ```
 
-For development you can use `flask run --debug` to run the service on port 5000. Alternatively use `gunicorn -c gunicorn_conf.py app:app` to run the service on port 8000.
+### Manual Setup
 
-## TODO
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/miguelangel-nubla/grocy-label-printer-brother.git
+    cd grocy-label-printer-brother
+    ```
 
-- Some more formatting options
+2.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-### Docker
+3.  Run the server:
+    ```bash
+    gunicorn --conf gunicorn_conf.py --bind 0.0.0.0:5000 app:app
+    ```
 
-A Dockerfile is included based on a python 3.10 alpine image. The default port is 8000.
+## Configuration
 
-Published to Dockerhub as [sam159/brotherql_grocylabels](https://hub.docker.com/r/sam159/brotherql_grocylabels) for architectures amd64, arm64, and armv7.
+### Environment Variables
 
-As an example, you can launch this with `docker run -d -p 8000:8000 -e PRINTER_MODEL=QL-500 -e PRINTER_PATH=file:///dev/usb/lp1 sam159/brotherql_grocylabels:latest`.
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `PRINTER_MODEL` | `QL-500` | Brother printer model (e.g., `QL-700`, `PT-P750W`). |
+| `PRINTER_PATH` | `file:///dev/usb/lp1` | Connection path: `tcp://IP_ADDRESS` or `file:///dev/usb/lpX`. |
+| `LABEL_SIZE` | *None* | Label identifier (e.g., `62`, `29x90`). **Required** unless auto-detected (PT network printers). |
+| `PRINTER_600DPI` | `true` | Set to `true` for high-resolution printing. |
+| `BARCODE_FORMAT` | `Datamatrix` | Barcode format (e.g., `QR`, `Datamatrix`, `Code128`). |
+| `NAME_FONT` | `NotoSerif-Regular.ttf` | Font file for product name (placed in `fonts/`). |
+| `NAME_FONT_SIZE` | `48` | Font size for product name. |
+| `NAME_MAX_LINES` | `4` | Maximum lines for product name wrapping. |
+| `DUE_DATE_FONT` | *Same as NAME_FONT* | Font file for dates/amounts. |
+| `DUE_DATE_FONT_SIZE` | `30` | Font size for dates/amounts. |
 
-An example `docker-compose.yml` file can be found [here](docker-compose.yml).
+### Grocy Configuration
 
-## Contributing
+In Grocy, configure a new label printer:
 
-I'll try to keep on top of bugs but feature requests may go unfulfilled. Please use the issue tracking in Github.
+1.  Go to **Manage > Label printers**.
+2.  Add a new printer with these settings:
+    -   **Name**: Brother Label Printer
+    -   **Type**: Webhook
+    -   **URL**: `http://your-server:5000/print`
+    -   **JSON payload**:
+        ```json
+        {
+          "product": "{{ product }}",
+          "grocycode": "{{ grocycode }}",
+          "best_before_date": "{{ best_before_date }}",
+          "purchased_date": "{{ purchased_date }}",
+          "amount": "{{ amount }}",
+          "note": "{{ note }}",
+          "stock_entry": {
+             "best_before_date": "{{ best_before_date }}",
+             "purchased_date": "{{ purchased_date }}",
+             "amount": "{{ amount }}",
+             "note": "{{ note }}"
+          }
+        }
+        ```
 
-PRs are welcome!
+## API Endpoints
+
+### `POST /print`
+Print a label using the provided data.
+
+**Request Body** (JSON):
+```json
+{
+  "product": "Product Name",
+  "grocycode": "grcy:...",
+  "stock_entry": {
+    "best_before_date": "2023-12-31",
+    "amount": "1.5"
+  }
+}
+```
+
+### `GET /image`
+Generate and return a preview of the label image (PNG). Useful for testing layout without printing.
+
+**Parameters** (Query String):
+- `product`: Product name
+- `grocycode`: Barcode content
+- `amount`: Quantity
+- ... (same fields as JSON body)
+
+### `GET /`
+Returns the current label configuration status.
+
+**Response**: `Label <size_id>, <size_name>`
+
+## Label Format
+
+The label layout is dynamically generated based on the label size:
+
+-   **Endless Labels** (e.g., 62mm continuous):
+    -   **Barcode**: Placed on the left side.
+    -   **Product Name**: Wrapped text on the right side.
+    -   **Metadata**: Amount and dates are intelligently placed to maximize space usage.
+-   **Die-Cut Labels**:
+    -   Layout adapts to fixed dimensions, scaling the barcode and text to fit.
