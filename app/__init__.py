@@ -151,7 +151,7 @@ def get_params():
         'best_before_date': '' if exclude_amount_and_dates else (str(stock_entry.get('best_before_date', '')) if stock_entry.get('best_before_date') else ''),
         'purchased_date': '' if exclude_amount_and_dates else (str(stock_entry.get('purchased_date', '')) if stock_entry.get('purchased_date') else ''),
         'amount': '' if exclude_amount_and_dates else (str(stock_entry.get('amount', '')) if stock_entry.get('amount') else ''),
-        'note': str(stock_entry.get('note', ''))
+        'note': str(stock_entry.get('note') or '')
     }
     
     # Extract unit info
