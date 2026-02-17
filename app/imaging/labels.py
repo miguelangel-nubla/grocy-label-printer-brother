@@ -92,6 +92,11 @@ class LabelLayout:
             text_width_needed = max(text_width_needed, self.due_date_font.getlength(amount_display))
         
         gap = self.config.text_font.size // 2
+        
+        # If no text or metadata, return just the barcode width
+        if text_width_needed == 0:
+            return barcode.size[0]
+            
         calculated_width = int(barcode.size[0] + gap + text_width_needed)
         min_width = barcode.size[0] + int(self.height * 0.4)
         
